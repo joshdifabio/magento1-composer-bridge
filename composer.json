@@ -1,0 +1,17 @@
+{
+    "name": "joshdifabio/magento1-composer-bridge",
+    "type": "magento-module",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Josh Di Fabio",
+            "email": "joshdifabio@gmail.com"
+        }
+    ],
+    "require": {
+        "magento-hackathon/magento-composer-installer": "*"
+    },
+    "replace": {
+        "ampersand/mage-autoloader": "*"
+    }
+}
