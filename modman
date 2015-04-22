@@ -1,0 +1,2 @@
+Autoload.php    app/code/community/Vendor/Autoload.php
+functions.php   app/code/community/Mage/Core/functions.php
