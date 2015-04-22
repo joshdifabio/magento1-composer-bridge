@@ -134,20 +134,7 @@ function is_empty_date($date)
 
 function mageFindClassFile($class)
 {
-    if (defined('COMPILER_INCLUDE_PATH')) {
-        $classFile = $class.'.php';
-    } else {
-        $classFile = uc_words($class, DIRECTORY_SEPARATOR).'.php';
-    }
-    $found = false;
-    foreach (explode(PS, get_include_path()) as $path) {
-        $fileName = $path.DS.$classFile;
-        if (file_exists($fileName)) {
-            $found = $fileName;
-            break;
-        }
-    }
-    return $found;
+    return Varien_Autoload::instance()->findFile($class);
 }
 
 /**

@@ -26,6 +26,8 @@
 
 /**
  * Classes source autoload
+ * 
+ * @author Josh Di Fabio <joshdifabio@gmail.com>
  */
 class Varien_Autoload
 {
@@ -38,6 +40,8 @@ class Varien_Autoload
     protected $_collectClasses      = false;
     protected $_collectPath         = null;
     protected $_arrLoadedClasses    = array();
+    
+    private $composerAutoloader;
 
     /**
      * Class constructor
@@ -45,12 +49,14 @@ class Varien_Autoload
     public function __construct()
     {
         register_shutdown_function(array($this, 'destroy'));
-        $this->_isIncludePathDefined = defined('COMPILER_INCLUDE_PATH');
-        if (defined('COMPILER_COLLECT_PATH')) {
-            $this->_collectClasses  = true;
-            $this->_collectPath     = COMPILER_COLLECT_PATH;
+        
+        if (defined('COMPILER_INCLUDE_PATH') || defined('COMPILER_COLLECT_PATH')) {
+            throw new \LogicException('The Composer bridge is not compatible with the Magento compiler.');
         }
+        
         self::registerScope(self::$_scope);
+        
+        $this->composerAutoloader = $this->getComposerAutoloader();
     }
 
     /**
@@ -63,6 +69,7 @@ class Varien_Autoload
         if (!self::$_instance) {
             self::$_instance = new Varien_Autoload();
         }
+        
         return self::$_instance;
     }
 
@@ -81,32 +88,30 @@ class Varien_Autoload
      */
     public function autoload($class)
     {
-        if ($this->_collectClasses) {
-            $this->_arrLoadedClasses[self::$_scope][] = $class;
+        if (!$resolvedPath = $this->findFile($class)) {
+            return false;
         }
-        if ($this->_isIncludePathDefined) {
-            $classFile =  COMPILER_INCLUDE_PATH . DIRECTORY_SEPARATOR . $class;
-        } else {
-            $classFile = str_replace(' ', DIRECTORY_SEPARATOR, ucwords(str_replace('_', ' ', $class)));
-        }
-        $classFile.= '.php';
-        //echo $classFile;die();
-        return include $classFile;
+        
+        return include $resolvedPath;
+    }
+    
+    /**
+     * @param string $class
+     * @return false|string Path to file
+     */
+    public function findFile($class)
+    {
+        return $this->_composerAutoloader->findFile($class);
     }
 
     /**
-     * Register autoload scope
-     * This process allow include scope file which can contain classes
-     * definition which are used for this scope
+     * This is here for backwards compatibility only
      *
-     * @param string $code scope code
+     * @param string $code
      */
     static public function registerScope($code)
     {
         self::$_scope = $code;
-        if (defined('COMPILER_INCLUDE_PATH')) {
-            @include COMPILER_INCLUDE_PATH . DIRECTORY_SEPARATOR . self::SCOPE_FILE_PREFIX.$code.'.php';
-        }
     }
 
     /**
@@ -120,52 +125,37 @@ class Varien_Autoload
     }
 
     /**
-     * Class destructor
+     * This is here for backwards compatibility only
      */
     public function destroy()
     {
-        if ($this->_collectClasses) {
-            $this->_saveCollectedStat();
-        }
+        
     }
 
     /**
-     * Save information about used classes per scope with class popularity
-     * Class_Name:popularity
+     * This is here for backwards compatibility only
      *
      * @return Varien_Autoload
      */
     protected function _saveCollectedStat()
     {
-        if (!is_dir($this->_collectPath)) {
-            @mkdir($this->_collectPath);
-            @chmod($this->_collectPath, 0777);
-        }
-
-        if (!is_writeable($this->_collectPath)) {
-            return $this;
-        }
-
-        foreach ($this->_arrLoadedClasses as $scope => $classes) {
-            $file = $this->_collectPath.DIRECTORY_SEPARATOR.$scope.'.csv';
-            $data = array();
-            if (file_exists($file)) {
-                $data = explode("\n", file_get_contents($file));
-                foreach ($data as $index => $class) {
-                    $class = explode(':', $class);
-                    $searchIndex = array_search($class[0], $classes);
-                    if ($searchIndex !== false) {
-                        $class[1]+=1;
-                        unset($classes[$searchIndex]);
-                    }
-                    $data[$index] = $class[0].':'.$class[1];
-                }
-            }
-            foreach ($classes as $class) {
-                $data[] = $class . ':1';
-            }
-            file_put_contents($file, implode("\n", $data));
-        }
         return $this;
+    }
+    
+    private function getComposerAutoloader()
+    {
+        // if vendor/ is child of Magento root
+        $vendorParentPath = dirname(dirname(dirname(dirname(__DIR__))));
+        
+        if (!$autoloader = @include "$vendorParentPath/vendor/autoload") {
+            // if vendor/ is sibling of Magento root
+            $autoloader = require dirname($vendorParentPath) . '/vendor/autoload';
+        }
+        
+        /* @var $autoloader \Composer\Autoload\ClassLoader */
+        
+        $autoloader->setUseIncludePath(true);
+        
+        return $autoloader;
     }
 }
