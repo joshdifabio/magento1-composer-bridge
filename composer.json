@@ -14,6 +14,9 @@
     "replace": {
         "ampersand/mage-autoloader": "*"
     },
+    "conflict": {
+        "ampersand/error-handler": "*"
+    },
     "extra": {
         "branch-alias": {
             "dev-master": "1.0-dev"
