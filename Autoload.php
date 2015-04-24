@@ -145,11 +145,11 @@ class Varien_Autoload
     private function getComposerAutoloader()
     {
         // if vendor/ is child of Magento root
-        $vendorParentPath = dirname(dirname(dirname(dirname(__DIR__))));
+        $vendorParentPath = dirname(dirname(dirname(__DIR__)));
         
-        if (!$autoloader = @include "$vendorParentPath/vendor/autoload") {
+        if (!$autoloader = @include "$vendorParentPath/vendor/autoload.php") {
             // if vendor/ is sibling of Magento root
-            $autoloader = require dirname($vendorParentPath) . '/vendor/autoload';
+            $autoloader = require dirname($vendorParentPath) . '/vendor/autoload.php';
         }
         
         /* @var $autoloader \Composer\Autoload\ClassLoader */
