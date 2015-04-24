@@ -101,7 +101,7 @@ class Varien_Autoload
      */
     public function findFile($class)
     {
-        return $this->_composerAutoloader->findFile($class);
+        return $this->composerAutoloader->findFile($class);
     }
 
     /**
