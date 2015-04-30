@@ -101,7 +101,13 @@ class Varien_Autoload
      */
     public function findFile($class)
     {
-        return $this->composerAutoloader->findFile($class);
+        $classFile = str_replace(' ', DIRECTORY_SEPARATOR, ucwords(str_replace(array('_', '\\'), ' ', $class))) . '.php';
+        
+        if (!$resolvedPath = stream_resolve_include_path($classFile)) {
+            $resolvedPath = $this->_composerAutoloader->findFile($class);
+        }
+        
+        return $resolvedPath;
     }
 
     /**
@@ -154,7 +160,7 @@ class Varien_Autoload
         
         /* @var $autoloader \Composer\Autoload\ClassLoader */
         
-        $autoloader->setUseIncludePath(true);
+        $autoloader->setUseIncludePath(false);
         
         return $autoloader;
     }
