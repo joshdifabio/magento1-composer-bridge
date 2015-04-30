@@ -104,7 +104,7 @@ class Varien_Autoload
         $classFile = str_replace(' ', DIRECTORY_SEPARATOR, ucwords(str_replace(array('_', '\\'), ' ', $class))) . '.php';
         
         if (!$resolvedPath = stream_resolve_include_path($classFile)) {
-            $resolvedPath = $this->_composerAutoloader->findFile($class);
+            $resolvedPath = $this->composerAutoloader->findFile($class);
         }
         
         return $resolvedPath;
