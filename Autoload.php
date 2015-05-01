@@ -76,6 +76,7 @@ class Varien_Autoload
      */
     static public function register()
     {
+        $this->getComposerAutoloader()->unregister();
         spl_autoload_register(array(self::instance(), 'autoload'));
     }
 
