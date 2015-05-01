@@ -55,8 +55,6 @@ class Varien_Autoload
         }
         
         self::registerScope(self::$_scope);
-        
-        $this->composerAutoloader = $this->getComposerAutoloader();
     }
 
     /**
@@ -104,7 +102,7 @@ class Varien_Autoload
         $classFile = str_replace(' ', DIRECTORY_SEPARATOR, ucwords(str_replace(array('_', '\\'), ' ', $class))) . '.php';
         
         if (!$resolvedPath = stream_resolve_include_path($classFile)) {
-            $resolvedPath = $this->composerAutoloader->findFile($class);
+            $resolvedPath = $this->getComposerAutoloader()->findFile($class);
         }
         
         return $resolvedPath;
@@ -149,6 +147,15 @@ class Varien_Autoload
     }
     
     private function getComposerAutoloader()
+    {
+        if (!$this->composerAutoloader) {
+            $this->composerAutoloader = $this->initComposerAutoloader();
+        }
+        
+        return $this->composerAutoloader;
+    }
+    
+    private function initComposerAutoloader()
     {
         // if vendor/ is child of Magento root
         $vendorParentPath = dirname(dirname(dirname(__DIR__)));
