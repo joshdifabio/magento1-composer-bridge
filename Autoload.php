@@ -41,6 +41,8 @@ class Varien_Autoload
     protected $_collectPath         = null;
     protected $_arrLoadedClasses    = array();
     
+    private $originalIncludePath;
+    private $includePathIsDirty = false;
     private $composerAutoloader;
 
     /**
@@ -55,6 +57,7 @@ class Varien_Autoload
         }
         
         self::registerScope(self::$_scope);
+        $this->originalIncludePath = get_include_path();
     }
 
     /**
@@ -101,12 +104,28 @@ class Varien_Autoload
     public function findFile($class)
     {
         $classFile = str_replace(' ', DIRECTORY_SEPARATOR, ucwords(str_replace(array('_', '\\'), ' ', $class))) . '.php';
-        
+
+        $this->prepareIncludePath();
         if (!$resolvedPath = stream_resolve_include_path($classFile)) {
             $resolvedPath = $this->getComposerAutoloader()->findFile($class);
         }
         
         return $resolvedPath;
+    }
+
+    private function prepareIncludePath()
+    {
+        if (!$this->includePathIsDirty) {
+            return;
+        }
+
+        $original = explode(PATH_SEPARATOR, $this->originalIncludePath);
+        $current = explode(PATH_SEPARATOR, get_include_path());
+        $addedByComposer = array_diff($current, $original);
+        $reordered = array_merge($original, $addedByComposer);
+        set_include_path(implode(PATH_SEPARATOR, $reordered));
+
+        $this->includePathIsDirty = false;
     }
 
     /**
@@ -158,6 +177,8 @@ class Varien_Autoload
     
     private function initComposerAutoloader()
     {
+        $this->includePathIsDirty = true;
+
         // if vendor/ is child of Magento root
         $vendorParentPath = dirname(dirname(dirname(__DIR__)));
         
