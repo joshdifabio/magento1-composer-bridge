@@ -179,11 +179,12 @@ class Varien_Autoload
     {
         $this->includePathIsDirty = true;
 
-        // if vendor/ is child of Magento root
         $vendorParentPath = dirname(dirname(dirname(dirname(__DIR__))));
-        
-        if (!$autoloader = @include "$vendorParentPath/vendor/autoload.php") {
-            // if vendor/ is sibling of Magento root
+        if (file_exists("$vendorParentPath/vendor/autoload.php")) {
+            // vendor/ is child of Magento root
+            $autoloader = require "$vendorParentPath/vendor/autoload.php";
+        } else {
+            // vendor/ is sibling of Magento root
             $autoloader = require dirname($vendorParentPath) . '/vendor/autoload.php';
         }
         
