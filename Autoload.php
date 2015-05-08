@@ -41,9 +41,11 @@ class Varien_Autoload
     protected $_collectPath         = null;
     protected $_arrLoadedClasses    = array();
     
-    private $originalIncludePath;
-    private $includePathIsDirty = false;
+    private $includePathReady = false;
+    private $manualIncludeDirs = array();
     private $composerAutoloader;
+    private $appDir;
+    private $vendorDir;
 
     /**
      * Class constructor
@@ -57,7 +59,6 @@ class Varien_Autoload
         }
         
         self::registerScope(self::$_scope);
-        $this->originalIncludePath = get_include_path();
     }
 
     /**
@@ -106,26 +107,55 @@ class Varien_Autoload
         $classFile = str_replace(' ', DIRECTORY_SEPARATOR, ucwords(str_replace(array('_', '\\'), ' ', $class))) . '.php';
 
         $this->prepareIncludePath();
-        if (!$resolvedPath = stream_resolve_include_path($classFile)) {
-            $resolvedPath = $this->getComposerAutoloader()->findFile($class);
+        
+        if ($resolvedPath = stream_resolve_include_path($classFile)) {
+            return $resolvedPath;
         }
         
-        return $resolvedPath;
+        if ($resolvedPath = $this->getComposerAutoloader()->findFile($class)) {
+            return $resolvedPath;
+        }
+        
+        foreach ($this->manualIncludeDirs as $dir) {
+            if (file_exists($dir . DIRECTORY_SEPARATOR . $classFile)) {
+                return $dir . DIRECTORY_SEPARATOR . $classFile;
+            }
+        }
+        
+        return false;
     }
 
     private function prepareIncludePath()
     {
-        if (!$this->includePathIsDirty) {
+        if ($this->includePathReady) {
             return;
         }
-
-        $original = explode(PATH_SEPARATOR, $this->originalIncludePath);
-        $current = explode(PATH_SEPARATOR, get_include_path());
-        $addedByComposer = array_diff($current, $original);
-        $reordered = array_merge($original, $addedByComposer);
-        set_include_path(implode(PATH_SEPARATOR, $reordered));
-
-        $this->includePathIsDirty = false;
+        
+        $mageAppIncludeDirs = array();
+        $vendorIncludeDirs = array();
+        $mageLibIncludeDirs = array();
+        $globalIncludeDirs = array();
+        
+        $dirPaths = array_merge(explode(PATH_SEPARATOR, get_include_path()), $this->manualIncludeDirs);
+        $vendorPath = $this->getVendorDir();
+        $magePath = $this->getMagentoBaseDir();
+        
+        foreach ($dirPaths as $dirPath) {
+            if (0 === strpos($dirPath, $magePath . DIRECTORY_SEPARATOR . 'app')) {
+                $mageAppIncludeDirs[] = $dirPath;
+            } elseif (0 === strpos($dirPath, $magePath . DIRECTORY_SEPARATOR . 'lib')) {
+                $mageLibIncludeDirs[] = $dirPath;
+            } elseif (0 === strpos($dirPath, $vendorPath)) {
+                $vendorIncludeDirs[] = $dirPath;
+            } else {
+                $globalIncludeDirs[] = $dirPath;
+            }
+        }
+        
+        set_include_path(implode(PATH_SEPARATOR, $mageAppIncludeDirs));
+        $this->manualIncludeDirs = array_merge($vendorIncludeDirs, $mageLibIncludeDirs, $globalIncludeDirs);
+        
+        $this->includePathReady = true;
     }
 
     /**
@@ -177,21 +207,40 @@ class Varien_Autoload
     
     private function initComposerAutoloader()
     {
-        $this->includePathIsDirty = true;
-
-        $vendorParentPath = dirname(dirname(dirname(dirname(__DIR__))));
-        if (file_exists("$vendorParentPath/vendor/autoload.php")) {
-            // vendor/ is child of Magento root
-            $autoloader = require "$vendorParentPath/vendor/autoload.php";
-        } else {
-            // vendor/ is sibling of Magento root
-            $autoloader = require dirname($vendorParentPath) . '/vendor/autoload.php';
-        }
+        $this->includePathReady = false;
         
+        $autoloader = require $this->getVendorDir() . '/autoload.php';
         /* @var $autoloader \Composer\Autoload\ClassLoader */
-        
         $autoloader->setUseIncludePath(false);
         
         return $autoloader;
+    }
+    
+    private function getMagentoBaseDir()
+    {
+        if (is_null($this->appDir)) {
+            if (defined('BP')) {
+                $this->appDir = BP;
+            } else {
+                $this->appDir = dirname(dirname(dirname(dirname(__DIR__))));
+            }
+        }
+        
+        return $this->appDir;
+    }
+    
+    private function getVendorDir()
+    {
+        if (is_null($this->vendorDir)) {
+            $magentoBaseDir = $this->getMagentoBaseDir();
+            $ds = DIRECTORY_SEPARATOR;
+            if (file_exists($magentoBaseDir . $ds . 'vendor' . $ds . 'autoload.php')) {
+                $this->vendorDir = $magentoBaseDir . $ds . 'vendor';
+            } else {
+                $this->vendorDir = dirname($magentoBaseDir) . $ds . 'vendor';
+            }
+        }
+        
+        return $this->vendorDir;
     }
 }
