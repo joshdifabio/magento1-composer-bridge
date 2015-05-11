@@ -152,8 +152,9 @@ class Varien_Autoload
             }
         }
         
-        set_include_path(implode(PATH_SEPARATOR, $mageAppIncludeDirs));
-        $this->manualIncludeDirs = array_merge($vendorIncludeDirs, $mageLibIncludeDirs, $globalIncludeDirs);
+        $autoIncludeDirs = array_merge($mageAppIncludeDirs, $vendorIncludeDirs, $mageLibIncludeDirs);
+        set_include_path(implode(PATH_SEPARATOR, $autoIncludeDirs));
+        $this->manualIncludeDirs = $globalIncludeDirs;
         
         $this->includePathReady = true;
     }
