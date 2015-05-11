@@ -121,7 +121,33 @@ class Varien_Autoload
                 return $dir . DIRECTORY_SEPARATOR . $classFile;
             }
         }
+
+        if ($resolvedPath = $this->findComposerMagentoModuleFile($class)) {
+            return $resolvedPath;
+        }
         
+        return false;
+    }
+
+    /**
+     * Allow the autoloader to find composer magento module files in controllers dir
+     * These files don't follow the same class name/location conventions
+     *
+     * @param $class
+     * @return bool|string
+     */
+    private function findComposerMagentoModuleFile($class){
+        //By convention this is the first 2 "words" of the class name
+        $classParts = explode('_', $class);
+        $realModule = array_shift($classParts) . '_' . array_shift($classParts);
+
+        $fileNameWithPath = implode(DIRECTORY_SEPARATOR, $classParts);
+        $moduleDir = Mage::getModuleDir('controllers', $realModule);
+
+        if (file_exists($moduleDir . DIRECTORY_SEPARATOR . $fileNameWithPath . '.php')) {
+            return $moduleDir . DIRECTORY_SEPARATOR . $fileNameWithPath . '.php';
+        }
+
         return false;
     }
 
