@@ -122,21 +122,17 @@ class Varien_Autoload
             }
         }
 
-        if ($resolvedPath = $this->findComposerMagentoModuleFile($class)) {
-            return $resolvedPath;
-        }
-        
-        return false;
+        return $this->findMagentoControllerFile($class);
     }
 
     /**
-     * Allow the autoloader to find composer magento module files in controllers dir
+     * Allow the autoloader to find magento module files in controllers dir
      * These files don't follow the same class name/location conventions
      *
      * @param $class
      * @return bool|string
      */
-    private function findComposerMagentoModuleFile($class){
+    private function findMagentoControllerFile($class){
         //By convention this is the first 2 "words" of the class name
         $classParts = explode('_', $class);
         $realModule = array_shift($classParts) . '_' . array_shift($classParts);
