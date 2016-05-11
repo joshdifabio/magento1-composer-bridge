@@ -135,13 +135,22 @@ class Varien_Autoload
     private function findMagentoControllerFile($class){
         //By convention this is the first 2 "words" of the class name
         $classParts = explode('_', $class);
-        $realModule = array_shift($classParts) . '_' . array_shift($classParts);
 
-        $fileNameWithPath = implode(DIRECTORY_SEPARATOR, $classParts);
+        if (!(isset($classParts[0]) && isset($classParts[1]))) {
+            //Namespace and module name are not defined.
+            return false;
+        }
+        $namespace = array_shift($classParts);
+        $module = array_shift($classParts);
+
+        $realModule = $namespace . '_' . $module;
+
+        $fileNameWithPath = implode(DIRECTORY_SEPARATOR, $classParts) . '.php';
         $moduleDir = Mage::getModuleDir('controllers', $realModule);
 
-        if (file_exists($moduleDir . DIRECTORY_SEPARATOR . $fileNameWithPath . '.php')) {
-            return $moduleDir . DIRECTORY_SEPARATOR . $fileNameWithPath . '.php';
+        $fullFilepath = $moduleDir . DIRECTORY_SEPARATOR . $fileNameWithPath;
+        if (file_exists($fullFilepath)) {
+            return $fullFilepath;
         }
 
         return false;
