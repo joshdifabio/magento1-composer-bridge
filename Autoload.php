@@ -43,6 +43,7 @@ class Varien_Autoload
     
     private $includePathReady = false;
     private $manualIncludeDirs = array();
+    private $autoIncludeDirs = array();
     private $composerAutoloader;
     private $appDir;
     private $vendorDir;
@@ -129,6 +130,9 @@ class Varien_Autoload
      * Allow the autoloader to find magento module files in controllers dir
      * These files don't follow the same class name/location conventions
      *
+     * The following code comments work with the example $class of
+     * Mage_Adminhtml_Sales_OrderController
+     *
      * @param $class
      * @return bool|string
      */
@@ -137,20 +141,39 @@ class Varien_Autoload
         $classParts = explode('_', $class);
 
         if (!(isset($classParts[0]) && isset($classParts[1]))) {
-            //Namespace and module name are not defined.
+            //Namespace and module name are not defined. Do not attempt any further logic.
             return false;
         }
+
+        //eg Mage
         $namespace = array_shift($classParts);
+        //eg Adminhtml
         $module = array_shift($classParts);
 
+        //eg Mage_Adminhtml
         $realModule = $namespace . '_' . $module;
 
+        //eg Sales/OrderController.php
         $fileNameWithPath = implode(DIRECTORY_SEPARATOR, $classParts) . '.php';
+
+        //eg Mage/Adminhtml/controllers/Sales/OrderController.php
+        $realModuleDirectoryPath = $namespace . DIRECTORY_SEPARATOR . $module . DIRECTORY_SEPARATOR .
+            'controllers' . DIRECTORY_SEPARATOR . $fileNameWithPath;
+
+        foreach ($this->autoIncludeDirs as $autoIncludeDir) {
+            //eg app/code/local/Mage/Adminhtml/controllers/Sales/OrderController.php
+            $path = $autoIncludeDir . DIRECTORY_SEPARATOR . $realModuleDirectoryPath;
+            if (file_exists($path)) {
+                return $path;
+            }
+        }
+
+        //Could not find in auto include dirs. Use the modules controller directory.
         $moduleDir = Mage::getModuleDir('controllers', $realModule);
 
-        $fullFilepath = $moduleDir . DIRECTORY_SEPARATOR . $fileNameWithPath;
-        if (file_exists($fullFilepath)) {
-            return $fullFilepath;
+        $path = $moduleDir . DIRECTORY_SEPARATOR . $fileNameWithPath;
+        if (file_exists($path)) {
+            return $path;
         }
 
         return false;
@@ -186,7 +209,7 @@ class Varien_Autoload
         $autoIncludeDirs = array_merge($mageAppIncludeDirs, $vendorIncludeDirs, $mageLibIncludeDirs);
         set_include_path(implode(PATH_SEPARATOR, $autoIncludeDirs));
         $this->manualIncludeDirs = $globalIncludeDirs;
-        
+        $this->autoIncludeDirs = $autoIncludeDirs;
         $this->includePathReady = true;
     }
 
